@@ -23,7 +23,6 @@
 <body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
         <div class="bg-white rounded-2xl shadow-2xl p-8">
-            <!-- Header -->
             <div class="flex items-center gap-3 mb-8">
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
@@ -31,111 +30,54 @@
                 <h1 class="text-3xl font-bold text-gray-800">NBA Stats Predictor</h1>
             </div>
 
-            <!-- API Key Setup -->
-            <div id="apiKeySetup" class="mb-6">
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                    <p class="text-sm text-yellow-800 mb-2">
-                        <strong>Setup Required:</strong> Enter your API key below to get started.
-                    </p>
-                    <p class="text-xs text-yellow-700">
-                        Get a free API key from <a href="https://rapidapi.com/api-sports/api/api-nba/" target="_blank" class="underline">RapidAPI NBA API</a>
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <input 
-                        type="password" 
-                        id="apiKeyInput" 
-                        placeholder="Enter your RapidAPI key..."
-                        class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button 
-                        onclick="saveApiKey()"
-                        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        Save
-                    </button>
-                </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-green-800">
+                    ✓ Connected to live NBA data via API-Sports
+                </p>
             </div>
 
-            <!-- Main App -->
-            <div id="mainApp" style="display: none;">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                    <p class="text-sm text-green-800">
-                        ✓ API Key configured. Fetching real NBA data...
-                    </p>
-                </div>
-
-                <!-- Player Selection -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Player</label>
-                    <div id="playerSelectContainer">
-                        <div class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg">
-                            <div class="spinner"></div>
-                            <span class="text-gray-600">Loading players...</span>
-                        </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Player</label>
+                <div id="playerSelectContainer">
+                    <div class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg">
+                        <div class="spinner"></div>
+                        <span class="text-gray-600">Loading players...</span>
                     </div>
                 </div>
-
-                <!-- Predict Button -->
-                <button 
-                    id="predictBtn"
-                    onclick="predictNextGame()"
-                    disabled
-                    class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-6"
-                >
-                    Predict Next Game
-                </button>
-
-                <!-- Error Display -->
-                <div id="errorContainer" style="display: none;" class="mb-6 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span id="errorMessage"></span>
-                </div>
-
-                <!-- Prediction Results -->
-                <div id="predictionContainer" style="display: none;"></div>
             </div>
+
+            <button 
+                id="predictBtn"
+                onclick="predictNextGame()"
+                disabled
+                class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-6"
+            >
+                Predict Next Game
+            </button>
+
+            <div id="errorContainer" style="display: none;" class="mb-6 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span id="errorMessage"></span>
+            </div>
+
+            <div id="predictionContainer" style="display: none;"></div>
         </div>
     </div>
 
     <script>
-        // ===== CONFIGURATION =====
-        let API_KEY = '';
         let selectedPlayerId = '';
         let playersData = [];
+        const API_BASE = '/api/nba';
 
-        // ===== API KEY MANAGEMENT =====
-        function saveApiKey() {
-            const input = document.getElementById('apiKeyInput');
-            API_KEY = input.value.trim();
-            
-            if (!API_KEY) {
-                alert('Please enter an API key');
-                return;
-            }
-
-            document.getElementById('apiKeySetup').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            
-            fetchPlayers();
-        }
-
-        // ===== NBA API CALLS =====
         async function fetchNBA(endpoint) {
-            const response = await fetch(`https://api-nba-v1.p.rapidapi.com/${endpoint}`, {
-                headers: {
-                    'X-RapidAPI-Key': API_KEY,
-                    'X-RapidAPI-Host': 'api-nba-v1.p.rapidapi.com'
-                }
-            });
-            
+            const response = await fetch(`${API_BASE}?endpoint=${encodeURIComponent(endpoint)}`);
             if (!response.ok) {
                 throw new Error(`API Error: ${response.status}`);
             }
-            
-            return await response.json();
+            const data = await response.json();
+            return data;
         }
 
         async function fetchPlayers() {
@@ -143,11 +85,10 @@
                 const data = await fetchNBA('players?season=2024');
                 
                 if (!data.response || data.response.length === 0) {
-                    showError('No players found for 2024 season');
+                    showError('No players found');
                     return;
                 }
 
-                // Filter and sort active players
                 playersData = data.response
                     .filter(p => p.leagues && p.leagues.standard)
                     .map(p => ({
@@ -160,7 +101,7 @@
                 renderPlayerSelect();
             } catch (err) {
                 console.error('Error fetching players:', err);
-                showError('Failed to load players. Check your API key and try again.');
+                showError('Failed to load players. Check console for details.');
             }
         }
 
@@ -201,7 +142,6 @@
             document.getElementById('predictionContainer').style.display = 'none';
 
             try {
-                // Fetch player statistics for 2024 season
                 const statsData = await fetchNBA(`players/statistics?id=${selectedPlayerId}&season=2024`);
                 
                 if (!statsData.response || statsData.response.length === 0) {
@@ -210,7 +150,7 @@
                 }
 
                 const games = statsData.response
-                    .filter(g => g.points !== null)
+                    .filter(g => g.points !== null && g.points !== undefined)
                     .sort((a, b) => new Date(b.game.date.start) - new Date(a.game.date.start));
 
                 if (games.length === 0) {
@@ -221,18 +161,17 @@
                 const stats = calculateStats(games);
                 const player = playersData.find(p => p.id == selectedPlayerId);
                 
-                // Get opponent info from last game
                 const lastGame = games[0];
-                const isHome = lastGame.team.id == player.teamId;
+                const lastGameDate = new Date(lastGame.game.date.start);
                 
-                // Check back-to-back
+                // Determine home/away based on team comparison
+                const isHome = lastGame.team.id == player.teamId;
+                const opponent = lastGame.opponent.code;
+                
                 const isBackToBack = games.length > 1 && 
                     Math.abs(new Date(games[0].game.date.start) - new Date(games[1].game.date.start)) / (1000 * 60 * 60 * 24) <= 1;
 
-                // Generate opponent and defensive ranking
                 const defenseRank = Math.floor(Math.random() * 30) + 1;
-                
-                const lastGameDate = new Date(lastGame.game.date.start);
                 const nextGameDate = new Date(lastGameDate);
                 nextGameDate.setDate(nextGameDate.getDate() + (isBackToBack ? 1 : 2));
 
@@ -242,8 +181,8 @@
                     isBackToBack,
                     lastGameDate: lastGameDate.toLocaleDateString(),
                     nextGameDate: nextGameDate.toLocaleDateString(),
-                    opponent: lastGame.opponent.code,
-                    isHome: Math.random() > 0.5,
+                    opponent: opponent,
+                    isHome: Math.random() > 0.5, // Randomize for next game
                     defenseRank,
                     isTop5Defense: defenseRank <= 5,
                     isBottom5Defense: defenseRank >= 26
@@ -260,10 +199,10 @@
 
         function calculateStats(games) {
             const stats = {
-                points: games.map(g => g.points || 0),
-                rebounds: games.map(g => (g.totReb || 0)),
-                assists: games.map(g => g.assists || 0),
-                threes: games.map(g => g.tpm || 0)
+                points: games.map(g => parseFloat(g.points) || 0),
+                rebounds: games.map(g => parseFloat(g.totReb) || 0),
+                assists: games.map(g => parseFloat(g.assists) || 0),
+                threes: games.map(g => parseFloat(g.tpm) || 0)
             };
 
             const calculate = (arr) => {
@@ -374,6 +313,8 @@
         function hideError() {
             document.getElementById('errorContainer').style.display = 'none';
         }
+
+        fetchPlayers();
     </script>
 </body>
 </html>
