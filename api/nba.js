@@ -2,10 +2,9 @@ export default async function handler(req, res) {
   const { endpoint } = req.query;
   
   try {
-    const response = await fetch(`https://api-nba-v1.p.rapidapi.com/${endpoint}`, {
+    const response = await fetch(`https://api.balldontlie.io/v1/${endpoint}`, {
       headers: {
-        'X-RapidAPI-Key': process.env.NBA_API_KEY,
-        'X-RapidAPI-Host': 'api-nba-v1.p.rapidapi.com'
+        'Authorization': process.env.NBA_API_KEY
       }
     });
     
