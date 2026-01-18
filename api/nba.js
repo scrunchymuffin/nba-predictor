@@ -2,9 +2,11 @@ export default async function handler(req, res) {
   const { endpoint } = req.query;
   
   try {
-    const response = await fetch(`https://api.balldontlie.io/v1/${endpoint}`, {
+    const response = await fetch(`https://stats.nba.com/stats/${endpoint}`, {
       headers: {
-        'Authorization': process.env.NBA_API_KEY
+        'Accept': 'application/json',
+        'Referer': 'https://www.nba.com/',
+        'User-Agent': 'Mozilla/5.0'
       }
     });
     
