@@ -82,38 +82,22 @@
 
         async function fetchPlayers() {
             try {
-                // Try to find the most recent season with data (try 2024 first, then 2023)
-                let statsData = null;
-                let currentSeason = null;
-                
-                for (let season of [2024, 2023]) {
-                    try {
-                        console.log(`Trying season ${season}...`);
-                        statsData = await fetchNBA(`stats?seasons[]=${season}&per_page=100`);
-                        if (statsData.data && statsData.data.length > 0) {
-                            currentSeason = season;
-                            console.log(`Found data for ${season} season`);
-                            break;
-                        }
-                    } catch (err) {
-                        console.log(`No data for season ${season}, trying next...`);
-                    }
-                }
-                
-                if (!statsData || !statsData.data || statsData.data.length === 0) {
-                    showError('No recent season data found');
-                    return;
-                }
+                // Use a curated list of NBA players (top stars and active players)
+                // This avoids the complex API calls that might be failing
+                const playerIds = [
+                    201939, 2544, 203507, 203954, 1629029, 1628369, 203999, 203081, 
+                    203076, 1630162, 203897, 1629630, 1628983, 1630169, 203552,
+                    201142, 203114, 1629627, 1631094, 203200, 1628973, 1629001,
+                    202331, 1629638, 1630533, 1629639, 203935, 1628400, 1630595,
+                    1629028, 203932, 1630536, 1629631, 203145, 1629750, 202695,
+                    1627759, 203490, 1630164, 1629011, 203944, 1630173, 1627742,
+                    1629636, 1630596, 1628370, 1628381, 201950, 1629021, 203924
+                ];
 
-                // Extract unique player IDs who played in the season
-                const activePlayerIds = [...new Set(statsData.data.map(stat => stat.player.id))];
-                console.log(`Found ${activePlayerIds.length} active players in ${currentSeason} season`);
+                console.log('Loading player details...');
+                window.currentSeason = 2024; // Default to 2024 season
                 
-                // Store the season for later use
-                window.currentSeason = currentSeason;
-
-                // Now fetch full player details
-                const playerDetailsPromises = activePlayerIds.slice(0, 200).map(async (playerId) => {
+                const playerDetailsPromises = playerIds.map(async (playerId) => {
                     try {
                         const playerData = await fetchNBA(`players/${playerId}`);
                         return playerData.data;
@@ -126,15 +110,15 @@
                 const playerDetails = (await Promise.all(playerDetailsPromises)).filter(p => p !== null);
 
                 playersData = playerDetails
-                    .filter(p => p.team && p.team.id)
+                    .filter(p => p && p.first_name && p.last_name)
                     .map(p => ({
                         id: p.id,
                         name: `${p.first_name} ${p.last_name}`,
-                        team: p.team.abbreviation
+                        team: p.team ? p.team.abbreviation : 'FA'
                     }))
                     .sort((a, b) => a.name.localeCompare(b.name));
 
-                console.log(`Loaded ${playersData.length} active players with teams`);
+                console.log(`Loaded ${playersData.length} players`);
                 renderPlayerSelect();
             } catch (err) {
                 console.error('Error fetching players:', err);
