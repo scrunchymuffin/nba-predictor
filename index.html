@@ -41,7 +41,7 @@
                 <div id="playerSelectContainer">
                     <div class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg">
                         <div class="spinner"></div>
-                        <span class="text-gray-600">Loading players...</span>
+                        <span class="text-gray-600">Loading active players...</span>
                     </div>
                 </div>
             </div>
@@ -82,14 +82,33 @@
 
         async function fetchPlayers() {
             try {
-                const data = await fetchNBA('players?per_page=100');
+                // First, get stats from 2025 season (2025-26) to find active players
+                console.log('Fetching 2025 season stats to identify active players...');
+                const statsData = await fetchNBA('stats?seasons[]=2025&per_page=100');
                 
-                if (!data.data || data.data.length === 0) {
-                    showError('No players found');
+                if (!statsData.data || statsData.data.length === 0) {
+                    showError('No 2025 season data found');
                     return;
                 }
 
-                playersData = data.data
+                // Extract unique player IDs who played in 2025
+                const activePlayerIds = [...new Set(statsData.data.map(stat => stat.player.id))];
+                console.log(`Found ${activePlayerIds.length} active players in 2025 season`);
+
+                // Now fetch full player details
+                const playerDetailsPromises = activePlayerIds.slice(0, 200).map(async (playerId) => {
+                    try {
+                        const playerData = await fetchNBA(`players/${playerId}`);
+                        return playerData.data;
+                    } catch (err) {
+                        console.error(`Failed to fetch player ${playerId}:`, err);
+                        return null;
+                    }
+                });
+
+                const playerDetails = (await Promise.all(playerDetailsPromises)).filter(p => p !== null);
+
+                playersData = playerDetails
                     .filter(p => p.team && p.team.id)
                     .map(p => ({
                         id: p.id,
@@ -98,6 +117,7 @@
                     }))
                     .sort((a, b) => a.name.localeCompare(b.name));
 
+                console.log(`Loaded ${playersData.length} active players with teams`);
                 renderPlayerSelect();
             } catch (err) {
                 console.error('Error fetching players:', err);
@@ -142,14 +162,39 @@
             document.getElementById('predictionContainer').style.display = 'none';
 
             try {
-                const statsData = await fetchNBA(`stats?seasons[]=2024&player_ids[]=${selectedPlayerId}&per_page=100`);
+                console.log(`Fetching stats for player ${selectedPlayerId}...`);
                 
-                if (!statsData.data || statsData.data.length === 0) {
-                    showError('No games found for this player in the 2024 season');
+                // Fetch all pages of stats for this player in 2025 season (2025-26)
+                let allGames = [];
+                let currentPage = 1;
+                let hasMorePages = true;
+
+                while (hasMorePages && currentPage <= 3) { // Limit to 3 pages (300 games max)
+                    const statsData = await fetchNBA(`stats?seasons[]=2025&player_ids[]=${selectedPlayerId}&per_page=100&page=${currentPage}`);
+                    
+                    if (!statsData.data || statsData.data.length === 0) {
+                        hasMorePages = false;
+                        break;
+                    }
+
+                    allGames = allGames.concat(statsData.data);
+                    
+                    // Check if there are more pages
+                    if (statsData.meta && statsData.meta.next_page) {
+                        currentPage++;
+                    } else {
+                        hasMorePages = false;
+                    }
+                }
+
+                console.log(`Found ${allGames.length} games for this player`);
+
+                if (allGames.length === 0) {
+                    showError('No games found for this player in the 2025 season');
                     return;
                 }
 
-                const games = statsData.data
+                const games = allGames
                     .filter(g => g.pts !== null && g.pts !== undefined)
                     .sort((a, b) => new Date(b.game.date) - new Date(a.game.date));
 
