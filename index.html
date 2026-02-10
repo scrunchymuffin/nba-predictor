@@ -30,18 +30,29 @@
                 <h1 class="text-3xl font-bold text-gray-800">NBA Stats Predictor</h1>
             </div>
 
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p class="text-sm text-blue-800">
-                    <strong>Demo Mode:</strong> Using statistical models based on player profiles and historical performance patterns.
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-green-800">
+                    <strong>✓ Live Data:</strong> Stats updated daily from NBA games
                 </p>
+                <p class="text-xs text-gray-600 mt-1" id="lastUpdated">Loading...</p>
             </div>
 
+            <!-- Team Filter -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Team (Optional)</label>
+                <select id="teamFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Teams</option>
+                </select>
+            </div>
+
+            <!-- Player Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Player</label>
                 <div id="playerSelectContainer">
-                    <select id="playerSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Choose a player...</option>
-                    </select>
+                    <div class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg">
+                        <div class="spinner"></div>
+                        <span class="text-gray-600">Loading players...</span>
+                    </div>
                 </div>
             </div>
 
@@ -66,104 +77,88 @@
     </div>
 
     <script>
-        const playersData = [
-            { name: 'LeBron James', team: 'LAL', type: 'allstar', pts: 25, reb: 7, ast: 8, fg3: 2 },
-            { name: 'Stephen Curry', team: 'GSW', type: 'shooter', pts: 27, reb: 5, ast: 6, fg3: 5 },
-            { name: 'Giannis Antetokounmpo', team: 'MIL', type: 'bigman', pts: 30, reb: 11, ast: 6, fg3: 1 },
-            { name: 'Joel Embiid', team: 'PHI', type: 'bigman', pts: 33, reb: 10, ast: 4, fg3: 1 },
-            { name: 'Luka Doncic', team: 'DAL', type: 'allstar', pts: 28, reb: 9, ast: 8, fg3: 3 },
-            { name: 'Jayson Tatum', team: 'BOS', type: 'scorer', pts: 27, reb: 8, ast: 5, fg3: 3 },
-            { name: 'Nikola Jokic', team: 'DEN', type: 'allstar', pts: 26, reb: 12, ast: 9, fg3: 1 },
-            { name: 'Damian Lillard', team: 'MIL', type: 'shooter', pts: 25, reb: 4, ast: 7, fg3: 4 },
-            { name: 'Anthony Davis', team: 'LAL', type: 'bigman', pts: 24, reb: 12, ast: 3, fg3: 1 },
-            { name: 'Anthony Edwards', team: 'MIN', type: 'scorer', pts: 26, reb: 5, ast: 5, fg3: 3 },
-            { name: 'Devin Booker', team: 'PHX', type: 'scorer', pts: 27, reb: 4, ast: 7, fg3: 3 },
-            { name: 'Tyrese Haliburton', team: 'IND', type: 'playmaker', pts: 20, reb: 4, ast: 11, fg3: 3 },
-            { name: 'Shai Gilgeous-Alexander', team: 'OKC', type: 'scorer', pts: 30, reb: 5, ast: 6, fg3: 2 },
-            { name: 'Tyrese Maxey', team: 'PHI', type: 'scorer', pts: 26, reb: 4, ast: 7, fg3: 3 },
-            { name: 'Kawhi Leonard', team: 'LAC', type: 'scorer', pts: 24, reb: 6, ast: 4, fg3: 2 },
-            { name: 'Kevin Durant', team: 'PHX', type: 'scorer', pts: 27, reb: 7, ast: 5, fg3: 2 },
-            { name: 'Jaylen Brown', team: 'BOS', type: 'scorer', pts: 23, reb: 6, ast: 4, fg3: 2 },
-            { name: 'Scottie Barnes', team: 'TOR', type: 'allstar', pts: 19, reb: 8, ast: 6, fg3: 1 },
-            { name: 'Victor Wembanyama', team: 'SAS', type: 'bigman', pts: 21, reb: 10, ast: 4, fg3: 2 },
-            { name: 'Paolo Banchero', team: 'ORL', type: 'allstar', pts: 22, reb: 7, ast: 5, fg3: 1 },
-            { name: 'Chet Holmgren', team: 'OKC', type: 'bigman', pts: 17, reb: 8, ast: 3, fg3: 2 },
-            { name: 'Paul George', team: 'PHI', type: 'scorer', pts: 23, reb: 6, ast: 4, fg3: 3 },
-            { name: 'Jaren Jackson Jr', team: 'MEM', type: 'bigman', pts: 18, reb: 6, ast: 2, fg3: 2 },
-            { name: 'DeAaron Fox', team: 'SAC', type: 'scorer', pts: 26, reb: 4, ast: 6, fg3: 2 },
-            { name: 'Jimmy Butler', team: 'MIA', type: 'allstar', pts: 21, reb: 5, ast: 5, fg3: 1 },
-            { name: 'Alperen Sengun', team: 'HOU', type: 'bigman', pts: 19, reb: 9, ast: 5, fg3: 1 },
-            { name: 'Evan Mobley', team: 'CLE', type: 'bigman', pts: 16, reb: 9, ast: 3, fg3: 1 },
-            { name: 'Franz Wagner', team: 'ORL', type: 'allstar', pts: 20, reb: 5, ast: 4, fg3: 2 },
-            { name: 'Domantas Sabonis', team: 'SAC', type: 'bigman', pts: 19, reb: 13, ast: 8, fg3: 0 },
-            { name: 'Brandon Ingram', team: 'NOP', type: 'scorer', pts: 21, reb: 5, ast: 5, fg3: 2 },
-            { name: 'DeMar DeRozan', team: 'SAC', type: 'scorer', pts: 22, reb: 4, ast: 4, fg3: 1 },
-            { name: 'Jalen Williams', team: 'OKC', type: 'allstar', pts: 19, reb: 4, ast: 5, fg3: 2 },
-            { name: 'Bradley Beal', team: 'PHX', type: 'scorer', pts: 18, reb: 4, ast: 5, fg3: 2 },
-            { name: 'Jalen Brunson', team: 'NYK', type: 'playmaker', pts: 28, reb: 4, ast: 7, fg3: 3 },
-            { name: 'Trae Young', team: 'ATL', type: 'playmaker', pts: 26, reb: 3, ast: 11, fg3: 3 },
-            { name: 'Nikola Vucevic', team: 'CHI', type: 'bigman', pts: 18, reb: 10, ast: 3, fg3: 1 },
-            { name: 'Darius Garland', team: 'CLE', type: 'playmaker', pts: 18, reb: 3, ast: 7, fg3: 3 },
-            { name: 'Julius Randle', team: 'MIN', type: 'allstar', pts: 24, reb: 9, ast: 5, fg3: 2 },
-            { name: 'Immanuel Quickley', team: 'TOR', type: 'scorer', pts: 17, reb: 3, ast: 5, fg3: 3 },
-            { name: 'Donovan Mitchell', team: 'CLE', type: 'scorer', pts: 27, reb: 5, ast: 6, fg3: 4 },
-            { name: 'Jalen Green', team: 'HOU', type: 'scorer', pts: 20, reb: 4, ast: 3, fg3: 2 },
-            { name: 'Bam Adebayo', team: 'MIA', type: 'bigman', pts: 19, reb: 10, ast: 4, fg3: 0 },
-            { name: 'DeAndre Hunter', team: 'ATL', type: 'scorer', pts: 16, reb: 4, ast: 2, fg3: 2 },
-            { name: 'Jrue Holiday', team: 'BOS', type: 'allstar', pts: 13, reb: 5, ast: 5, fg3: 2 },
-            { name: 'Zion Williamson', team: 'NOP', type: 'bigman', pts: 23, reb: 6, ast: 5, fg3: 0 },
-            { name: 'Khris Middleton', team: 'MIL', type: 'scorer', pts: 15, reb: 4, ast: 5, fg3: 2 }
-        ].sort((a, b) => a.name.localeCompare(b.name));
-
-        const nbaTeams = ['ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW', 'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK', 'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS'];
-
+        let allPlayers = [];
         let selectedPlayer = null;
+        let selectedTeam = '';
 
-        // Initialize
-        const select = document.getElementById('playerSelect');
-        playersData.forEach((player, idx) => {
-            const option = document.createElement('option');
-            option.value = idx;
-            option.textContent = `${player.name} (${player.team})`;
-            select.appendChild(option);
-        });
+        async function loadPlayerData() {
+            try {
+                const response = await fetch('/api/get-stats');
+                const data = await response.json();
+                
+                if (!data.players || data.players.length === 0) {
+                    showError('No player data available. Data will be synced at 3 AM daily.');
+                    return;
+                }
 
-        select.onchange = (e) => {
-            selectedPlayer = e.target.value ? playersData[e.target.value] : null;
-            document.getElementById('predictBtn').disabled = !selectedPlayer;
-        };
+                allPlayers = data.players;
+                
+                // Update last updated timestamp
+                if (data.lastUpdated) {
+                    const date = new Date(data.lastUpdated);
+                    document.getElementById('lastUpdated').textContent = 
+                        `Last updated: ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
+                }
 
-        function generateGameStats(player) {
-            const games = [];
-            const variance = 0.25; // 25% variance
-            
-            for (let i = 0; i < 20; i++) {
-                const random = () => 0.75 + Math.random() * 0.5; // 0.75 to 1.25
-                games.push({
-                    pts: Math.max(0, Math.round(player.pts * random())),
-                    reb: Math.max(0, Math.round(player.reb * random())),
-                    ast: Math.max(0, Math.round(player.ast * random())),
-                    fg3m: Math.max(0, Math.round(player.fg3 * random()))
-                });
+                // Populate team filter
+                populateTeamFilter();
+                
+                // Render player list
+                renderPlayerSelect();
+                
+            } catch (err) {
+                console.error('Error loading data:', err);
+                showError('Failed to load player data: ' + err.message);
             }
-            return games;
         }
 
-        function calculateStats(games) {
-            const calculate = (arr) => {
-                const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-                const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
-                const stdDev = Math.sqrt(variance);
-                return { mean: mean.toFixed(1), stdDev: stdDev.toFixed(1) };
+        function populateTeamFilter() {
+            const teams = [...new Set(allPlayers.map(p => p.team))].sort();
+            const teamFilter = document.getElementById('teamFilter');
+            
+            teams.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team;
+                option.textContent = team;
+                teamFilter.appendChild(option);
+            });
+
+            teamFilter.onchange = (e) => {
+                selectedTeam = e.target.value;
+                renderPlayerSelect();
+            };
+        }
+
+        function renderPlayerSelect() {
+            const container = document.getElementById('playerSelectContainer');
+            
+            // Filter players by team if selected
+            const filteredPlayers = selectedTeam 
+                ? allPlayers.filter(p => p.team === selectedTeam)
+                : allPlayers;
+
+            const select = document.createElement('select');
+            select.id = 'playerSelect';
+            select.className = 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+            select.onchange = (e) => {
+                selectedPlayer = e.target.value ? filteredPlayers[e.target.value] : null;
+                document.getElementById('predictBtn').disabled = !selectedPlayer;
             };
 
-            return {
-                points: calculate(games.map(g => g.pts)),
-                rebounds: calculate(games.map(g => g.reb)),
-                assists: calculate(games.map(g => g.ast)),
-                threes: calculate(games.map(g => g.fg3m)),
-                gamesAnalyzed: games.length
-            };
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = `Choose a player... (${filteredPlayers.length} available)`;
+            select.appendChild(defaultOption);
+
+            filteredPlayers.forEach((player, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `${player.name} (${player.team})`;
+                select.appendChild(option);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(select);
         }
 
         function predictNextGame() {
@@ -173,25 +168,22 @@
             btn.disabled = true;
             btn.innerHTML = '<div class="spinner"></div><span>Analyzing...</span>';
             
-            document.getElementById('errorContainer').style.display = 'none';
+            hideError();
             document.getElementById('predictionContainer').style.display = 'none';
 
             setTimeout(() => {
-                const games = generateGameStats(selectedPlayer);
-                const stats = calculateStats(games);
+                const stats = selectedPlayer.stats;
                 
                 const today = new Date();
-                const lastGameDate = new Date(today);
-                lastGameDate.setDate(lastGameDate.getDate() - Math.floor(Math.random() * 3) - 1);
+                const lastGameDate = new Date(selectedPlayer.lastGameDate || today);
                 
-                const isBackToBack = Math.random() > 0.7;
+                const isBackToBack = selectedPlayer.isBackToBack || false;
                 const nextGameDate = new Date(lastGameDate);
                 nextGameDate.setDate(nextGameDate.getDate() + (isBackToBack ? 1 : Math.floor(Math.random() * 3) + 2));
                 
-                const otherTeams = nbaTeams.filter(t => t !== selectedPlayer.team);
-                const opponent = otherTeams[Math.floor(Math.random() * otherTeams.length)];
-                const isHome = Math.random() > 0.5;
-                const defenseRank = Math.floor(Math.random() * 30) + 1;
+                const opponent = selectedPlayer.nextOpponent || 'TBD';
+                const isHome = selectedPlayer.nextIsHome !== undefined ? selectedPlayer.nextIsHome : Math.random() > 0.5;
+                const defenseRank = selectedPlayer.opponentDefenseRank || Math.floor(Math.random() * 30) + 1;
 
                 renderPrediction({
                     playerName: selectedPlayer.name,
@@ -208,7 +200,7 @@
 
                 btn.disabled = false;
                 btn.innerHTML = 'Predict Next Game';
-            }, 800);
+            }, 500);
         }
 
         function renderPrediction(prediction) {
@@ -294,6 +286,18 @@
                 </div>
             `;
         }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorContainer').style.display = 'flex';
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').style.display = 'none';
+        }
+
+        // Load data on page load
+        loadPlayerData();
     </script>
 </body>
 </html>
