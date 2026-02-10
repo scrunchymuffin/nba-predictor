@@ -1,5 +1,3 @@
-import { kv } from '@vercel/kv';
-
 export const config = {
   maxDuration: 60,
 };
@@ -15,10 +13,30 @@ export default async function handler(req, res) {
     
     const playerStats = await fetchNBAStats();
     
-    await kv.set('nba:player_stats', {
+    // Use KV REST API instead of @vercel/kv package
+    const kvUrl = process.env.KV_REST_API_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN;
+    
+    if (!kvUrl || !kvToken) {
+      throw new Error('KV environment variables not configured');
+    }
+
+    const dataToStore = JSON.stringify({
       players: playerStats,
       lastUpdated: new Date().toISOString()
     });
+
+    const kvResponse = await fetch(`${kvUrl}/set/nba:player_stats`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${kvToken}`,
+      },
+      body: dataToStore,
+    });
+
+    if (!kvResponse.ok) {
+      throw new Error(`KV storage failed: ${kvResponse.status}`);
+    }
 
     console.log(`Updated stats for ${playerStats.length} players`);
     
@@ -57,7 +75,6 @@ async function fetchFromNBA(endpoint) {
 
 async function fetchNBAStats() {
   try {
-    // Get top players by points for 2024-25 season
     const leaderData = await fetchFromNBA(
       'leagueLeaders?LeagueID=00&PerMode=PerGame&Scope=S&Season=2024-25&SeasonType=Regular%20Season&StatCategory=PTS'
     );
@@ -67,7 +84,7 @@ async function fetchNBAStats() {
     }
 
     const headers = leaderData.resultSet.headers;
-    const rows = leaderData.resultSet.rowSet.slice(0, 100); // Top 100 players
+    const rows = leaderData.resultSet.rowSet.slice(0, 100);
 
     const players = [];
 
@@ -77,7 +94,6 @@ async function fetchNBAStats() {
         playerData[header] = row[idx];
       });
 
-      // Get detailed game log for this player
       try {
         const gameLogData = await fetchFromNBA(
           `playergamelogs?LeagueID=00&PerMode=Totals&PlayerID=${playerData.PLAYER_ID}&Season=2024-25&SeasonType=Regular%20Season`
@@ -97,13 +113,11 @@ async function fetchNBAStats() {
             const stats = calculatePlayerStats(games);
             const lastGame = games[0];
             
-            // Determine next opponent info
             const matchup = lastGame.MATCHUP || '';
             const isHome = matchup.includes('vs.');
             const opponentMatch = matchup.match(/(?:vs\.|@)\s*([A-Z]{3})/);
             const opponent = opponentMatch ? opponentMatch[1] : 'TBD';
             
-            // Check for back-to-back
             const isBackToBack = games.length > 1 && 
               Math.abs(new Date(games[0].GAME_DATE) - new Date(games[1].GAME_DATE)) / (1000 * 60 * 60 * 24) <= 1;
 
@@ -113,14 +127,13 @@ async function fetchNBAStats() {
               stats,
               lastGameDate: lastGame.GAME_DATE,
               nextOpponent: opponent,
-              nextIsHome: !isHome, // Flip for next game
+              nextIsHome: !isHome,
               isBackToBack,
-              opponentDefenseRank: Math.floor(Math.random() * 30) + 1 // TODO: fetch real defensive rankings
+              opponentDefenseRank: Math.floor(Math.random() * 30) + 1
             });
           }
         }
 
-        // Add delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 200));
         
       } catch (error) {
@@ -132,7 +145,6 @@ async function fetchNBAStats() {
     
   } catch (error) {
     console.error('Error in fetchNBAStats:', error);
-    // Return demo data as fallback
     return generateDemoData();
   }
 }
@@ -168,8 +180,6 @@ function generateDemoData() {
     { id: '203507', name: 'Giannis Antetokounmpo', team: 'MIL', avgPts: 30, avgReb: 11, avgAst: 6, avgFg3: 1 },
     { id: '203954', name: 'Joel Embiid', team: 'PHI', avgPts: 33, avgReb: 10, avgAst: 4, avgFg3: 1 },
     { id: '1629029', name: 'Luka Doncic', team: 'DAL', avgPts: 28, avgReb: 9, avgAst: 8, avgFg3: 3 },
-    { id: '1628369', name: 'Jayson Tatum', team: 'BOS', avgPts: 27, avgReb: 8, avgAst: 5, avgFg3: 3 },
-    { id: '203999', name: 'Nikola Jokic', team: 'DEN', avgPts: 26, avgReb: 12, avgAst: 9, avgFg3: 1 },
   ];
 
   return players.map(p => ({
